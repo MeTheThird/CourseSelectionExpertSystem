@@ -28,12 +28,11 @@
 (defglobal ?*MANAGEABLE_NUM_OF_APS* = 2)               ; the number of APs beyond which one's
                                                        ; sophomore year could be too much work
 
+
 (defglobal ?*STARTUP_RULE_SALIENCE* = 100)        ; very high to ensure that the startup rule fires
                                                   ; first
 (defglobal ?*END_RULE_SALIENCE* = -100)           ; very low to ensure that the end rule fires last
-(defglobal ?*SUCCESSFUL_END_RULE_SALIENCE* = -99) ; one greater than END_RULE_SALIENCE to ensure
-                                                  ; that the ES checks if it was successful before
-                                                  ; claiming it wasn't
+
 
 /*
 * the list of attributes that have honors or regular as values, and the list is used to dynamically
@@ -302,15 +301,6 @@
    (halt)
 ) ; defrule endRule
 
-(defrule successfulEndRule "catches the instance in which the ES has successfully generated a
-                            schedule for the user's sophomore year"
-   (declare (salience ?*SUCCESSFUL_END_RULE_SALIENCE*))
-   (test (eq ?*courseSlotsLeft* -1)) ; there should always be -1 course slots left if every slot,
-                                     ; including the EPO slot, has been filled
-=>
-   (foundSchedule)
-) ; defrule successfulEndRule
-
 
 
 
@@ -319,54 +309,63 @@
    (EPO_Interest "d")
 =>
    (addToCourseList "Speech & Debate EPO")
+   (foundSchedule)
 ) ; defrule debate
 
 (defrule journalism "rule to determine whether the user should take a Journalism EPO"
    (EPO_Interest "j")
 =>
    (addToCourseList "Journalism EPO")
+   (foundSchedule)
 ) ; defrule journalism
 
 (defrule businessAndEntre "rule to determine whether the user should take a B&E EPO"
    (EPO_Interest "e")
 =>
    (addToCourseList "Business and Entrepreneurship EPO")
+   (foundSchedule)
 ) ; defrule businessAndEntre
 
 (defrule singing "rule to determine whether the user should take a Singing EPO"
    (EPO_Interest "s")
 =>
    (addToCourseList "Singing Group EPO")
+   (foundSchedule)
 ) ; defrule singing
 
 (defrule dance "rule to determine whether the user should take a Dance EPO"
    (EPO_Interest "t")
 =>
    (addToCourseList "Dance EPO")
+   (foundSchedule)
 ) ; defrule dance
 
 (defrule band "rule to determine whether the user should take a Band EPO"
    (EPO_Interest "b")
 =>
    (addToCourseList "Band EPO")
+   (foundSchedule)
 ) ; defrule band
 
 (defrule orchestra "rule to determine whether the user should take an Orchestra EPO"
    (EPO_Interest "o")
 =>
    (addToCourseList "Orchestra")
+   (foundSchedule)
 ) ; defrule orchestra
 
 (defrule PE "rule to determine whether the user should take a PE EPO"
    (EPO_Interest "p")
 =>
    (addToCourseList "PE: Personal Fitness")
+   (foundSchedule)
 ) ; defrule PE
 
 (defrule free "rule to determine whether the user should take a free period in their EPO slot"
    (EPO_Interest "f")
 =>
    (addToCourseList "Free Period")
+   (foundSchedule)
 ) ; defrule free
 
 
@@ -440,7 +439,7 @@
    (test (eq ?*courseSlotsLeft* 1))
    (econOverEntre "y")
    (mathClass ?m)
-   (test (not (or (eq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
+   (test (not (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
 =>
    (addToCourseList "Economics (Semester 1), Behavioral Economics (Semester 2)")
 ) ; defrule econNoAPQual1
@@ -543,7 +542,7 @@
    (areaOfInterest "l")
    (test (eq ?*courseSlotsLeft* 1))
 =>
-   (addToCourseList "Foreign Language 1")
+   (addToCourseList "New Foreign Language 1")
 ) ; defrule newLang1
 
 
@@ -744,7 +743,7 @@
    (test (eq ?*courseSlotsLeft* 2))
    (econOverEntre "y")
    (mathClass ?m)
-   (test (not (or (eq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
+   (test (not (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
 =>
    (retractAndAssignPrevInterest ?f)
    (addToCourseList "Economics (Semester 1), Behavioral Economics (Semester 2)")
@@ -1617,7 +1616,7 @@
       (if (eq ?c "AP") then
          (++ ?numOfAPs)
       )
-   )
+   ) ; foreach ?course ?*courseList*
 
    (if (> ?numOfAPs ?*MANAGEABLE_NUM_OF_APS*) then
       (printline (str-cat "WARNING: You are taking " ?numOfAPs
@@ -1626,19 +1625,21 @@
 ) ; deffunction dishOutWarnings ()
 
 /*
-* ends the ES processing once the ES has found a potential schedule for the user
+* ends the ES processing if the ES has found a potential schedule for the user
 */
 (deffunction foundSchedule ()
-   (printline "")
-   (printline "Here's the schedule I've generated for your sophomore year at Harker:")
-   (printOutCourses)
+   (if (eq ?*courseSlotsLeft* -1) then
+      (printline "")
+      (printline "Here's the schedule I've generated for your sophomore year at Harker:")
+      (printOutCourses)
 
-   (dishOutWarnings)
+      (dishOutWarnings)
 
-   (printline "")
-   (printline "Type (runAgain) and hit enter if you want to generate another schedule.")
+      (printline "")
+      (printline "Type (runAgain) and hit enter if you want to generate another schedule.")
 
-   (halt)
+      (halt)
+   ) ; if (eq ?*courseSlotsLeft* -1) then
 
    (return)
 ) ; deffunction foundSchedule ()
