@@ -3,7 +3,7 @@
 * Date Created: 5/1/19
 *
 * An Expert System that helps a Harker high school freshman decide on which courses they should take
-* in their sophomore year based on their responses to a series of questions.
+* in their sophomore year based on backward-chained attributes.
 */
 
 
@@ -29,9 +29,13 @@
                                                        ; sophomore year could be too much work
 
 
-(defglobal ?*STARTUP_RULE_SALIENCE* = 100)        ; very high to ensure that the startup rule fires
-                                                  ; first
-(defglobal ?*END_RULE_SALIENCE* = -100)           ; very low to ensure that the end rule fires last
+(defglobal ?*STARTUP_RULE_SALIENCE* = 100)          ; very high to ensure that the startup rule
+                                                    ; fires first
+(defglobal ?*END_RULE_SALIENCE* = -100)             ; very low to ensure that the end rule fires
+                                                    ; last
+(defglobal ?*AREA_OF_INTEREST_RESET_SALIENCE* = -99) ; one more than END_RULE_SALIENCE to ensure that
+                                                    ; areaOfInterest is reset before ending the ES's
+                                                    ; processing
 
 
 /*
@@ -438,8 +442,9 @@
    (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 1))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (not (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
+   (test (not (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+                  (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                                    ?*courseList*)))))
 =>
    (addToCourseList "Economics (Semester 1), Behavioral Economics (Semester 2)")
 ) ; defrule econNoAPQual1
@@ -449,8 +454,9 @@
    (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 1))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c")))
+   (test (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                               ?*courseList*))))
    (wantsAPEcon "n")
 =>
    (addToCourseList "Economics (Semester 1), Behavioral Economics (Semester 2)")
@@ -460,8 +466,9 @@
    (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 1))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c")))
+   (test (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                               ?*courseList*))))
    (wantsAPEcon "y")
 =>
    (addToCourseList "AP Economics - Micro and Macro")
@@ -550,12 +557,13 @@
 
 
 (defrule phys2NoQual1 "rule to determine whether the user should take AP Physics 2 as their last
-                       elective if they didn't take AP Calculus BC freshman year"
+                       elective if they don't qualify for AP Physics C"
    (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 1))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "Honors Precalculus" ?*courseList*) FALSE) (eq ?m "p")))
+   (test (or (numberp (member$ "Honors Precalculus" ?*courseList*))
+             (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "AP Calculus AB" ?*courseList*))))
    (qualPhys2 "y")
 =>
    (addToCourseList "AP Physics 2")
@@ -565,26 +573,40 @@
    (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 1))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (eq ?m "c"))
+   (mathClass "c")
+   (physicsLevel "h")
    (qualPhysC "y")
    (wantsPhysC "y")
 =>
    (addToCourseList "AP Physics C")
 ) ; defrule physC1
 
-(defrule phys2Qual1 "rule to determine whether the user should take AP Physics C as their last
+(defrule phys2Qual1 "rule to determine whether the user should take AP Physics 2 as their last
                      elective if they qualify for AP Physics C"
    (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 1))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (eq ?m "c"))
+   (mathClass "c")
+   (physicsLevel "h")
    (qualPhysC "y")
    (wantsPhysC "n")
 =>
    (addToCourseList "AP Physics 2")
 ) ; defrule phys2Qual1
+
+(defrule phys2NoGradeQual1 "rule to determine whether the user should take AP Physics 2 as their
+                            last elective if they qualify for AP Physics C from a math perspective,
+                            but they didn't receive a high enough grade in Honors Physics to do so"
+   (areaOfInterest "s")
+   (test (eq ?*courseSlotsLeft* 1))
+   (wantsAPPhys "y")
+   (mathClass "c")
+   (physicsLevel "h")
+   (qualPhysC "n")
+   (qualPhys2 "y")
+=>
+   (addToCourseList "AP Physics 2")
+) ; defrule phys2NoGradeQual1
 
 (defrule scienceElective1 "rule to determine whether the user should take a non-AP Science elective
                            as their last elective"
@@ -670,6 +692,19 @@
 
 
 
+(defrule resetAreaOfInterest "rule to reset areaOfInterest if none of the other elective rules
+                              fired"
+   (declare (salience ?*AREA_OF_INTEREST_RESET_SALIENCE*))
+   ?f <- (areaOfInterest ?a)
+   (test (eq ?*courseSlotsLeft* 2))
+=>
+   (retractAndAssignPrevInterest ?f)
+)
+
+
+
+
+
 (defrule studyOfMusic2 "rule to determine whether the user should take study of music as their first
                         elective"
    ?f <- (areaOfInterest "a")
@@ -742,8 +777,9 @@
    ?f <- (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 2))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (not (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c"))))
+   (test (not (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+                  (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                                    ?*courseList*)))))
 =>
    (retractAndAssignPrevInterest ?f)
    (addToCourseList "Economics (Semester 1), Behavioral Economics (Semester 2)")
@@ -754,8 +790,9 @@
    ?f <- (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 2))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c")))
+   (test (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                               ?*courseList*))))
    (wantsAPEcon "n")
 =>
    (retractAndAssignPrevInterest ?f)
@@ -766,8 +803,9 @@
    ?f <- (areaOfInterest "b")
    (test (eq ?*courseSlotsLeft* 2))
    (econOverEntre "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "AP Calculus BC" ?*courseList*) FALSE) (eq ?m "c")))
+   (test (or (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "Honors Multivariate Calculus (Semester 1), Honors Differential Equations (Semester 2)"
+                               ?*courseList*))))
    (wantsAPEcon "y")
 =>
    (retractAndAssignPrevInterest ?f)
@@ -864,24 +902,26 @@
 
 
 (defrule phys2NoQual2 "rule to determine whether the user should take AP Physics 2 as their first
-                       elective if they didn't take AP Calculus BC freshman year"
+                       elective if they don't qualify for AP Physics C"
    ?f <- (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 2))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (or (neq (member$ "Honors Precalculus" ?*courseList*) FALSE) (eq ?m "p")))
+   (test (or (numberp (member$ "Honors Precalculus" ?*courseList*))
+             (numberp (member$ "AP Calculus BC" ?*courseList*))
+             (numberp (member$ "AP Calculus AB" ?*courseList*))))
    (qualPhys2 "y")
 =>
    (retractAndAssignPrevInterest ?f)
    (addToCourseList "AP Physics 2")
 ) ; defrule phys2NoQual2
 
-(defrule physC2 "rule to determine whether the user should take AP Physics C as their first elective"
+(defrule physC2 "rule to determine whether the user should take AP Physics C as their first
+                 elective"
    ?f <- (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 2))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (eq ?m "c"))
+   (mathClass "c")
+   (physicsLevel "h")
    (qualPhysC "y")
    (wantsPhysC "y")
 =>
@@ -889,19 +929,34 @@
    (addToCourseList "AP Physics C")
 ) ; defrule physC2
 
-(defrule phys2Qual2 "rule to determine whether the user should take AP Physics C as their first
+(defrule phys2Qual2 "rule to determine whether the user should take AP Physics 2 as their first
                      elective if they qualify for AP Physics C"
    ?f <- (areaOfInterest "s")
    (test (eq ?*courseSlotsLeft* 2))
    (wantsAPPhys "y")
-   (mathClass ?m)
-   (test (eq ?m "c"))
+   (mathClass "c")
+   (physicsLevel "h")
    (qualPhysC "y")
    (wantsPhysC "n")
 =>
    (retractAndAssignPrevInterest ?f)
    (addToCourseList "AP Physics 2")
 ) ; defrule phys2Qual2
+
+(defrule phys2NoGradeQual2 "rule to determine whether the user should take AP Physics 2 as their
+                            first elective if they qualify for AP Physics C from a math perspective,
+                            but they didn't receive a high enough grade in Honors Physics to do so"
+   ?f <- (areaOfInterest "s")
+   (test (eq ?*courseSlotsLeft* 2))
+   (wantsAPPhys "y")
+   (mathClass "c")
+   (physicsLevel "h")
+   (qualPhysC "n")
+   (qualPhys2 "y")
+=>
+   (retractAndAssignPrevInterest ?f)
+   (addToCourseList "AP Physics 2")
+) ; defrule phys2NoGradeQual2
 
 (defrule scienceElective2 "rule to determine whether the user should take a non-AP Science elective
                            as their first elective"
@@ -1176,14 +1231,24 @@
    (addToCourseList "AP Chemistry")
 ) ; defrule takeAPChem
 
-(defrule stayHonorsChem "rule to determine whether the user should stay in honors science"
+(defrule stayHonorsChemQual "rule to determine whether the user should stay in honors science if
+                             they qualify for AP Chem"
    (physicsLevel "h")
    (overworkingPhysics "n")
    (canDoAPChem "y")
    (wantsAPChem "n")
 =>
    (addToCourseList "Honors Chemistry")
-) ; defrule stayHonorsChem
+) ; defrule stayHonorsChemQual
+
+(defrule stayHonorsChemNoQual "rule to determine whether the user should stay in honors science if
+                               they don't qualify for AP Chem"
+   (physicsLevel "h")
+   (overworkingPhysics "n")
+   (canDoAPChem "n")
+=>
+   (addToCourseList "Honors Chemistry")
+) ; defrule stayHonorsChemNoQual
 
 (defrule moveDownChem "rule to determine whether the user should move down to regular science"
    (physicsLevel "h")
@@ -1620,8 +1685,10 @@
 
    (if (> ?numOfAPs ?*MANAGEABLE_NUM_OF_APS*) then
       (printline (str-cat "WARNING: You are taking " ?numOfAPs
-                          " APs, and that may not be manageable."))
+                          " APs, and that number of difficult classes may not be manageable."))
    )
+
+   (return)
 ) ; deffunction dishOutWarnings ()
 
 /*
@@ -1701,6 +1768,8 @@
 (deffunction retractAndAssignPrevInterest (?f)
    (retract ?f)
    (bind ?*prevInterest* (nth$ 1 (fact-slot-value ?f "__data")))
+
+   (return)
 ) ; deffunction retractAndAssignPrevInterest (?f)
 
 (runAgain) ; begins the ES

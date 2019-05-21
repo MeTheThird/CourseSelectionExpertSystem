@@ -126,11 +126,11 @@
 )
 
 /*
-* re-runs the Rule Engine
+* re-runs the rule engine
 */
 (deffunction runAgain ()
    (reset)
    (run)
 
    (return)
-)
+) ; deffunction runAgain ()
