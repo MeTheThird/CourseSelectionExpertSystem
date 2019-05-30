@@ -29,13 +29,13 @@
                                                        ; sophomore year could be too much work
 
 
-(defglobal ?*STARTUP_RULE_SALIENCE* = 100)          ; very high to ensure that the startup rule
-                                                    ; fires first
-(defglobal ?*END_RULE_SALIENCE* = -100)             ; very low to ensure that the end rule fires
-                                                    ; last
-(defglobal ?*AREA_OF_INTEREST_RESET_SALIENCE* = -99) ; one more than END_RULE_SALIENCE to ensure that
-                                                    ; areaOfInterest is reset before ending the ES's
-                                                    ; processing
+(defglobal ?*STARTUP_RULE_SALIENCE* = 100)           ; very high to ensure that the startup rule
+                                                     ; fires first
+(defglobal ?*END_RULE_SALIENCE* = -100)              ; very low to ensure that the end rule fires
+                                                     ; last
+(defglobal ?*AREA_OF_INTEREST_RESET_SALIENCE* = -99) ; one more than END_RULE_SALIENCE to ensure
+                                                     ; that areaOfInterest is reset before ending
+                                                     ; the ES's processing
 
 
 /*
@@ -61,7 +61,7 @@
                                            "What is your history level (enter h for honors or r for regular)? "
                                            "What is your physics level (enter h for honors or r for regular)? "
                                            "What is your math level (enter h for honors/AP or r for regular)? "
-                                           "Are you in an honors or regular foreign language class (enter h for honors/AP or r for regular)? "
+                                           "Are you in an honors or regular foreign language class (enter h for honors or r for regular)? "
                                      ) ; list
 ) ; defglobal ?*LIST_OF_HR_QUESTIONS*
 
@@ -136,8 +136,8 @@
                                            "Do you qualify to take AP Physics 2 (to qualify, you need to have earned at least a B+ in Honors Physics both semesters or at least an A in Physics both semesters)? "
                                            "Do you qualify to take AP Physics C (to qualify, you need to have earned at least an A- in Honors Physics both semesters)? "
                                            "Do you want to take AP Physics C? "
-                                           "Will you have completed AP Computer Science by sophomore year? "
-                                           "Will you have completed AP Computer Science with Data Structures by sophomore year? "
+                                           "Will you have completed AP Computer Science before sophomore year? "
+                                           "Will you have completed AP Computer Science with Data Structures before sophomore year? "
                                            "Do you want to take AP Computer Science? "
                                            "Do you want to take AP Computer Science with Data Structures? "
                                      ) ; list
@@ -161,7 +161,7 @@
 * (do-backward-chaining englishLevel)
 */
 (foreach ?attribute ?*LIST_OF_HR_ATTRIBUTES*
-   (build (str-cat "(do-backward-chaining " ?attribute ")"))
+   (eval (str-cat "(do-backward-chaining " ?attribute ")"))
 )
 
 /*
@@ -172,7 +172,7 @@
 * (do-backward-chaining overworkingEnglish)
 */
 (foreach ?attribute ?*LIST_OF_YN_ATTRIBUTES*
-   (build (str-cat "(do-backward-chaining " ?attribute ")"))
+   (eval (str-cat "(do-backward-chaining " ?attribute ")"))
 )
 
 
